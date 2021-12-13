@@ -1,27 +1,25 @@
 using System;
 using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Web.Http.ExceptionHandling;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using StockMarket.AccountAPI.Models;
-using StockMarket.AccountAPI.Repositories;
-using StockMarket.AccountAPI.Services;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using StockMarket.AdminAPI.Repositories;
+using StockMarket.AdminAPI.Services;
+using StockMarket.AdminAPI.Models;
+using Microsoft.EntityFrameworkCore;
 
-namespace StockMarket.AccountAPI
+namespace StockMarket.AdminAPI
 {
     public class Startup
     {
@@ -37,26 +35,32 @@ namespace StockMarket.AccountAPI
         {
             services.AddControllers();
             services.AddDbContext<StockMarketDBContext>(options => options.UseSqlServer(Configuration.GetConnectionString("StockMarketDBConnection")));
-            services.AddScoped<IUserRepository, UserRepository>();
-            services.AddScoped<IUserService, UserService>();
-            //enable swagger
+            services.AddScoped<IStockExchangeRepository, StockExchangeRepository>();
+            services.AddScoped<IStockExchangeService, StockExchangeService>();
+
+            services.AddScoped<IStockPriceRepository, StockPriceRepository>();
+            services.AddScoped<IStockPriceService, StockPriceService>();
+
+            services.AddScoped<IIpoRepository, IpoRepository>();
+            services.AddScoped<IIpoService, IpoService>();
+
+            services.AddScoped<ICompanyRepository, CompanyRepository>();
+            services.AddScoped<ICompanyService, CompanyService>();
+
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Stock Market", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
             });
-            //enable cors
             services.AddCors(c =>
             {
                 c.AddPolicy("AllowOrigin", options =>
-                options.AllowAnyOrigin()
+         options.AllowAnyOrigin()
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 );
             });
-
-            //Register Exception Handler  
-            //services.Add(typeof(IExceptionLogger), new ExceptionManagerApi());
-            //enable JWT
+            services.AddControllers();
+            //JWT
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
             services.AddAuthentication(options =>
             {
@@ -72,11 +76,9 @@ namespace StockMarket.AccountAPI
                     ValidIssuer = Configuration["JwtIssuer"],
                     ValidAudience = Configuration["JwtIssuer"],
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Jwtkey"])),
-                    ClockSkew=TimeSpan.Zero
+                    ClockSkew = TimeSpan.Zero
                 };
             });
-
-            services.AddControllers();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -86,16 +88,16 @@ namespace StockMarket.AccountAPI
             {
                 app.UseDeveloperExceptionPage();
             }
-
-            app.UseRouting();
-            app.UseAuthentication();
-            app.UseAuthorization();
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Stock Market V1");
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
             });
-            app.UseCors("AllowOrigin");
+            app.UseRouting();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.UseCors("AllowOrigin");//Enable Cors
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
